@@ -7,7 +7,6 @@
 // comment this line if you wish to disable colors in console
 #define USE_COLOR_CONSOLE
 
-#include "enums.h"
 #include "tools.h"
 
 #include <fmt/color.h>
