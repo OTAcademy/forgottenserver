@@ -12,8 +12,6 @@
 
 #include <boost/variant.hpp>
 
-class Creature;
-class Player;
 class BedItem;
 class Container;
 class Door;

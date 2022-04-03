@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <boost/asio.hpp>
 #include <cstdint>
+#include <fmt/color.h>
 #include <forward_list>
 #include <functional>
 #include <iostream>

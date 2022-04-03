@@ -12,7 +12,6 @@
 #include "guild.h"
 #include "protocolgame.h"
 #include "town.h"
-#include "storeinbox.h"
 #include "vocation.h"
 
 #include <bitset>

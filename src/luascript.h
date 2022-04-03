@@ -74,12 +74,6 @@ struct LuaTimerEventDesc {
 	LuaTimerEventDesc(LuaTimerEventDesc&& other) = default;
 };
 
-class LuaScriptInterface;
-class Cylinder;
-class Game;
-
-struct LootBlock;
-
 class ScriptEnvironment
 {
 	public:
