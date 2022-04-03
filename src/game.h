@@ -4,6 +4,7 @@
 #ifndef FS_GAME_H
 #define FS_GAME_H
 
+#include "familiars.h"
 #include "groups.h"
 #include "map.h"
 #include "mounts.h"

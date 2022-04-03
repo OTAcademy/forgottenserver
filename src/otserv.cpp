@@ -20,6 +20,7 @@
 #include "server.h"
 
 #include <fstream>
+#include <iomanip>
 
 #if __has_include("gitmetadata.h")
 	#include "gitmetadata.h"

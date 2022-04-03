@@ -14,7 +14,7 @@ class Container;
 class Game;
 class NetworkMessage;
 class Player;
-class Protocolgame;
+class ProtocolGame;
 class Quest;
 class Tile;
 class TrackedQuest;
