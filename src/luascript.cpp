@@ -2641,6 +2641,9 @@ void LuaScriptInterface::registerFunctions()
 	registerMethod("Container", "addItemEx", LuaScriptInterface::luaContainerAddItemEx);
 	registerMethod("Container", "getCorpseOwner", LuaScriptInterface::luaContainerGetCorpseOwner);
 
+	registerMethod("Container", "isLootContainer", LuaScriptInterface::luaContainerIsLootContainer);
+	registerMethod("Container", "getLootContainerId", LuaScriptInterface::luaContainerGetLootContainerId);
+
 	// Teleport
 	registerClass("Teleport", "Item", LuaScriptInterface::luaTeleportCreate);
 	registerMetaMethod("Teleport", "__eq", LuaScriptInterface::luaUserdataCompare);
@@ -7840,6 +7843,37 @@ int LuaScriptInterface::luaContainerGetCorpseOwner(lua_State* L)
 	} else {
 		lua_pushnil(L);
 	}
+	return 1;
+}
+
+int LuaScriptInterface::luaContainerIsLootContainer(lua_State* L)
+{
+	// container:isLootContainer()
+	Container* container = getUserdata<Container>(L, 1);
+	if (container) {
+		Item* item = container->getItem();
+		if (item) {
+			pushBoolean(L, item->isLootContainer());
+			return 1;
+		}
+	}
+
+	lua_pushnil(L);
+	return 1;
+}
+
+int LuaScriptInterface::luaContainerGetLootContainerId(lua_State* L)
+{
+	// container:getLootContainerId()
+	Container* container = getUserdata<Container>(L, 1);
+	if (container) {
+		Item* item = container->getItem();
+		if (item) {
+			lua_pushnumber(L, item->getLootContainerId());
+			return 1;
+		}
+	}
+	lua_pushnil(L);
 	return 1;
 }
 
