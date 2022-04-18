@@ -3,6 +3,17 @@ function ItemType:isItemType()
 end
 
 do
+	local currencies = {}
+	for _, itemType in ipairs(Game.getCurrencyItems()) do
+		currencies[#currencies + 1] = itemType:getId()
+	end
+
+	function ItemType:isCurrency()
+		return table.contains(currencies, self:getId())
+	end
+end
+
+do
 	local slotBits = {
 		[CONST_SLOT_HEAD] = SLOTP_HEAD,
 		[CONST_SLOT_NECKLACE] = SLOTP_NECKLACE,

@@ -311,8 +311,8 @@ class Game
 		void loadPlayersRecord();
 		void checkPlayersRecord();
 
-		void loadLatestLootContainer();
-		void saveLatestLootContainer();
+		void loadLatestLootContainerId();
+		void saveLatestLootContainerId();
 
 		void sendGuildMotd(uint32_t playerId);
 		void kickPlayer(uint32_t playerId, bool displayEffect);

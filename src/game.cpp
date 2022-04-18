@@ -5116,20 +5116,20 @@ void Game::loadPlayersRecord()
 	}
 }
 
-void Game::loadLatestLootContainer()
+void Game::loadLatestLootContainerId()
 {
 	Database& db = Database::getInstance();
 
 	DBResult_ptr result = db.storeQuery(fmt::format("SELECT `value` FROM `server_config` WHERE `config` = {:s}", db.escapeString("loot_containers")));
 	if (!result) {
-		saveLatestLootContainer();
+		saveLatestLootContainerId();
 		return;
 	}
 
 	Items::lootContainerAutoId = result->getNumber<uint64_t>("value");
 }
 
-void Game::saveLatestLootContainer()
+void Game::saveLatestLootContainerId()
 {
 	uint64_t lootContainerId = Items::lootContainerAutoId;
 	if (Items::lastSavedLootContainerAutoId != lootContainerId) {

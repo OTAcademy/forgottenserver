@@ -259,7 +259,7 @@ void mainLoader(int, char*[], ServiceManager* services)
 	DatabaseManager::updateDatabase();
 
 	// load autonumering for loot containers
-	g_game.loadLatestLootContainer();
+	g_game.loadLatestLootContainerId();
 
 	// optimize tables
 	if (g_config.getBoolean(ConfigManager::OPTIMIZE_DATABASE)) {

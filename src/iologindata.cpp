@@ -670,7 +670,7 @@ bool IOLoginData::saveItems(const Player* player, const ItemBlockList& itemList,
 
 bool IOLoginData::savePlayer(Player* player)
 {
-	g_game.saveLatestLootContainer();
+	g_game.saveLatestLootContainerId();
 
 	if (player->getHealth() <= 0) {
 		player->changeHealth(1);
