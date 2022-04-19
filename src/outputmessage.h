@@ -18,7 +18,7 @@ class OutputMessage : public NetworkMessage
 		OutputMessage& operator=(const OutputMessage&) = delete;
 
 		uint8_t* getOutputBuffer() {
-			return buffer + outputBufferStart;
+			return &buffer[outputBufferStart];
 		}
 
 		void writeMessageLength() {
@@ -27,7 +27,7 @@ class OutputMessage : public NetworkMessage
 
 		void addCryptoHeader(checksumMode_t mode, uint32_t& sequence) {
 			if (mode == CHECKSUM_ADLER) {
-				add_header(adlerChecksum(buffer + outputBufferStart, info.length));
+				add_header(adlerChecksum(&buffer[outputBufferStart], info.length));
 			} else if (mode == CHECKSUM_SEQUENCE) {
 				add_header(sequence++);
 			}
@@ -37,14 +37,14 @@ class OutputMessage : public NetworkMessage
 
 		void append(const NetworkMessage& msg) {
 			auto msgLen = msg.getLength();
-			memcpy(buffer + info.position, msg.getBuffer() + 8, msgLen);
+			std::copy_n(msg.getBuffer() + 8, msgLen, buffer.begin() + info.position);
 			info.length += msgLen;
 			info.position += msgLen;
 		}
 
 		void append(const OutputMessage_ptr& msg) {
 			auto msgLen = msg->getLength();
-			memcpy(buffer + info.position, msg->getBuffer() + 8, msgLen);
+			std::copy_n(msg->getBuffer() + 8, msgLen, buffer.begin() + info.position);
 			info.length += msgLen;
 			info.position += msgLen;
 		}
@@ -54,7 +54,7 @@ class OutputMessage : public NetworkMessage
 		void add_header(T add) {
 			assert(outputBufferStart >= sizeof(T));
 			outputBufferStart -= sizeof(T);
-			memcpy(buffer + outputBufferStart, &add, sizeof(T));
+			std::copy_n(&add, sizeof(T), buffer.begin() + outputBufferStart);
 			//added header size to the message size
 			info.length += sizeof(T);
 		}

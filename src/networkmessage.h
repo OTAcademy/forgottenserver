@@ -54,7 +54,7 @@ class NetworkMessage
 			}
 
 			T v;
-			memcpy(&v, buffer + info.position, sizeof(T));
+			std::copy_n(buffer.begin() + info.position, sizeof(T), &v);
 			info.position += sizeof(T);
 			return v;
 		}
@@ -83,7 +83,7 @@ class NetworkMessage
 				return;
 			}
 
-			memcpy(buffer + info.position, &value, sizeof(T));
+			std::copy_n(&value, sizeof(T), buffer.begin() + info.position);
 			info.position += sizeof(T);
 			info.length += sizeof(T);
 		}
@@ -130,16 +130,16 @@ class NetworkMessage
 		}
 
 		uint8_t* getBuffer() {
-			return buffer;
+			return &buffer[0];
 		}
 
 		const uint8_t* getBuffer() const {
-			return buffer;
+			return &buffer[0];
 		}
 
 		uint8_t* getBodyBuffer() {
 			info.position = 2;
-			return buffer + HEADER_LENGTH;
+			return &buffer[HEADER_LENGTH];
 		}
 
 	protected:
@@ -150,7 +150,7 @@ class NetworkMessage
 		};
 
 		NetworkMessageInfo info;
-		uint8_t buffer[NETWORKMESSAGE_MAXSIZE];
+		std::array<uint8_t, NETWORKMESSAGE_MAXSIZE> buffer;
 
 	private:
 		bool canAdd(size_t size) const {

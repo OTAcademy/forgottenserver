@@ -384,10 +384,13 @@ function callPacketEvent(player, recvbyte, networkMessage)
 	return false
 end
 
-function Player:onExtendedProtocol(recvbyte, networkMessage)
-	-- unhnadled login packets:
-	-- 0xCE -- allow everyone to inspect me(?)
-	-- 0xD0 -- quest tracker
-	callPacketEvent(self, recvbyte, networkMessage)
+function Player:onNetworkMessage(recvByte, msg)
+	local handler = PacketHandlers[recvByte]
+	if not handler then
+		io.write(string.format("Player: %s sent an unknown packet header: 0x%02X with %d bytes!\n", self:getName(), recvByte, msg:len()))
+		return
+	end
+
+	handler(self, msg)
 end
 -- end extended protocol

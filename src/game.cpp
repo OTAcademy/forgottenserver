@@ -5876,15 +5876,14 @@ void Game::playerRegisterCurrencies(uint32_t playerId)
 	}
 }
 
-void Game::parseExtendedProtocol(uint32_t playerId, uint8_t recvbyte, NetworkMessage* message)
+void Game::parsePlayerNetworkMessage(uint32_t playerId, uint8_t recvByte, NetworkMessage* msg)
 {
-	std::unique_ptr<NetworkMessage> msgPtr(message);
 	Player* player = getPlayerByID(playerId);
 	if (!player) {
 		return;
 	}
 
-	g_events->eventPlayerOnExtendedProtocol(player, recvbyte, std::move(msgPtr));
+	g_events->eventPlayerOnNetworkMessage(player, recvByte, msg);
 }
 
 void Game::parsePlayerExtendedOpcode(uint32_t playerId, uint8_t opcode, const std::string& buffer)

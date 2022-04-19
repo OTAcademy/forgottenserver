@@ -413,7 +413,7 @@ class Game
 		void playerAcceptMarketOffer(uint32_t playerId, uint32_t timestamp, uint16_t counter, uint16_t amount);
 		void playerRegisterCurrencies(uint32_t playerId);
 
-		void parseExtendedProtocol(uint32_t playerId, uint8_t recvbyte, NetworkMessage* message);
+		void parsePlayerNetworkMessage(uint32_t playerId, uint8_t recvByte, NetworkMessage* msg);
 		void parsePlayerExtendedOpcode(uint32_t playerId, uint8_t opcode, const std::string& buffer);
 
 

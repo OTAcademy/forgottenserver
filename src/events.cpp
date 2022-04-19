@@ -7,7 +7,6 @@
 #include "item.h"
 #include "monster.h"
 #include "player.h"
-#include "pugicast.h"
 #include "tools.h"
 
 Events::Events() :
@@ -127,8 +126,8 @@ bool Events::load()
 				info.playerOnInventoryUpdate = event;
 			} else if (methodName == "onConnect") {
 				info.playerOnConnect = event;
-			} else if (methodName == "onExtendedProtocol") {
-				info.playerOnExtendedProtocol = event;
+			} else if (methodName == "onNetworkMessage") {
+				info.playerOnNetworkMessage = event;
 			} else {
 				console::reportWarning(location, "Unknown player method \"" + methodName + "\"!");
 			}
@@ -1301,30 +1300,30 @@ void Events::eventPlayerOnConnect(Player* player, bool isLogin)
 	scriptInterface.callVoidFunction(2);
 }
 
-void Events::eventPlayerOnExtendedProtocol(Player* player, uint8_t recvbyte, std::unique_ptr<NetworkMessage> message)
+void Events::eventPlayerOnNetworkMessage(Player* player, uint8_t recvByte, NetworkMessage* msg)
 {
-	// Player:onExtendedProtocol(recvbyte, msg)
-	if (info.playerOnExtendedProtocol == -1) {
+	// Player:onNetworkMessage(recvByte, msg)
+	if (info.playerOnNetworkMessage == -1) {
 		return;
 	}
 
 	if (!scriptInterface.reserveScriptEnv()) {
-		console::reportOverflow("Events::eventPlayerOnExtendedProtocol");
+		std::cout << "[Error - Events::eventPlayerOnInventoryUpdate] Call stack overflow" << std::endl;
 		return;
 	}
 
 	ScriptEnvironment* env = scriptInterface.getScriptEnv();
-	env->setScriptId(info.playerOnExtendedProtocol, &scriptInterface);
+	env->setScriptId(info.playerOnNetworkMessage, &scriptInterface);
 
 	lua_State* L = scriptInterface.getLuaState();
-	scriptInterface.pushFunction(info.playerOnExtendedProtocol);
+	scriptInterface.pushFunction(info.playerOnNetworkMessage);
 
 	LuaScriptInterface::pushUserdata<Player>(L, player);
 	LuaScriptInterface::setMetatable(L, -1, "Player");
 
-	lua_pushnumber(L, recvbyte);
+	lua_pushnumber(L, recvByte);
 
-	LuaScriptInterface::pushUserdata<NetworkMessage>(L, message.release());
+	LuaScriptInterface::pushUserdata<NetworkMessage>(L, msg);
 	LuaScriptInterface::setMetatable(L, -1, "NetworkMessage");
 
 	scriptInterface.callVoidFunction(3);

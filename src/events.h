@@ -6,10 +6,10 @@
 
 #include "const.h"
 #include "creature.h"
-#include "networkmessage.h"
 #include "luascript.h"
 
 class ItemType;
+class NetworkMessage;
 class Party;
 class Tile;
 
@@ -62,7 +62,7 @@ class Events
 		int32_t playerOnInventoryUpdate = -1;
 
 		int32_t playerOnConnect = -1;
-		int32_t playerOnExtendedProtocol = -1;
+		int32_t playerOnNetworkMessage = -1;
 
 		// Monster
 		int32_t monsterOnDropLoot = -1;
@@ -115,7 +115,7 @@ class Events
 		void eventPlayerOnMinimapQuery(Player* player, const Position& position);
 		void eventPlayerOnInventoryUpdate(Player* player, Item* item, slots_t slot, bool equip);
 		void eventPlayerOnConnect(Player* player, bool isLogin);
-		void eventPlayerOnExtendedProtocol(Player* player, uint8_t recvbyte, std::unique_ptr<NetworkMessage> message);
+		void eventPlayerOnNetworkMessage(Player* player, uint8_t recvByte, NetworkMessage* msg);
 
 		// Monster
 		void eventMonsterOnDropLoot(Monster* monster, Container* corpse);
