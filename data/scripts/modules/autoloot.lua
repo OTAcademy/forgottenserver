@@ -1,21 +1,3 @@
-local config = {
-	maxCorpsesLimit = 40, -- how many corpses will be checked
-	maxLootListLength = 2000, -- how many items can the player register
-	messageErrorPosition = "You cannot loot this position.",
-	messageErrorOwner = "You are not the owner.",
-	
-	lootAbsent = "No loot.",
-	lootStart = "You looted",
-	
-	lootGoldNone = "none of the dropped gold",
-	lootGoldSome = "only some of the dropped gold",
-	lootGoldAll = "complete %d gold",
-	
-	lootItemNone = "none of the dropped items",
-	lootItemSome = "only some of the dropped items",
-	lootItemAll = "all items",
-}
-
 -- 143 - loot corpse/tile
 AUTOLOOT_REQUEST_QUICKLOOT = 0x8F
 
@@ -27,8 +9,29 @@ LOOTED_RESOURCE_NONE = 1 -- failed to loot items
 LOOTED_RESOURCE_SOME = 2 -- failed to loot some items
 LOOTED_RESOURCE_ALL = 3 -- looted all items
 
+local config = {
+	maxCorpsesLimit = 40, -- how many corpses will be checked
+	maxLootListLength = 2000, -- how many items can the player register
+	messageErrorPosition = "You cannot loot this position.",
+	messageErrorOwner = "You are not the owner.",
+	
+	lootAbsent = "No loot.",
+	lootStart = "You looted",
+	lootItem = {
+		[LOOTED_RESOURCE_NONE] = "none of the dropped items",
+		[LOOTED_RESOURCE_SOME] = "only some of the dropped items",
+		[LOOTED_RESOURCE_ALL] = "all items",
+	},
+	
+	lootGold = {
+		[LOOTED_RESOURCE_NONE] = "none of the dropped gold",
+		[LOOTED_RESOURCE_SOME] = "only some of the dropped gold",
+		[LOOTED_RESOURCE_ALL] = "complete %d gold",
+	},
+}
+
 local function getLootedStatus(currentAmount, totalAmount, currentStatus)
-	if currentAmount == 0 then
+	if currentAmount == 0 and totalAmount == 0 then
 		return LOOTED_RESOURCE_ABSENT
 	elseif currentAmount == 0 then
 		return LOOTED_RESOURCE_NONE
@@ -40,7 +43,9 @@ local function getLootedStatus(currentAmount, totalAmount, currentStatus)
 end
 
 local function getNextLootedStatus(currentStatus, elementStatus)
-	if currentStatus == elementStatus or currentStatus == LOOTED_RESOURCE_ABSENT then
+	if elementStatus == LOOTED_RESOURCE_ABSENT then
+		return currentStatus 
+	elseif currentStatus == elementStatus or currentStatus == LOOTED_RESOURCE_ABSENT then
 		return elementStatus
 	elseif currentStatus == LOOTED_RESOURCE_ALL or currentStatus == LOOTED_RESOURCE_NONE and (elementStatus == LOOTED_RESOURCE_ALL or elementStatus == LOOTED_RESOURCE_SOME) then
 		return LOOTED_RESOURCE_SOME
@@ -49,15 +54,56 @@ local function getNextLootedStatus(currentStatus, elementStatus)
 	return currentStatus
 end
 
+local function getLootResponse(lootedItems, lootedGold, itemCount, goldCount, corpseCount)
+	if lootedItems == LOOTED_RESOURCE_ABSENT and lootedGold == LOOTED_RESOURCE_ABSENT then
+		if corpseCount > 1 then
+			return string.format("%s (%d corpse%s)", config.lootAbsent, corpseCount, corpseCount == 1 and "" or "s")
+		else
+			return config.lootAbsent
+		end
+	elseif
+		corpseCount > 1 and (lootedItems == LOOTED_RESOURCE_ALL and lootedGold == LOOTED_RESOURCE_ALL
+		or lootedItems == LOOTED_RESOURCE_ALL and lootedGold == LOOTED_RESOURCE_ABSENT
+		or lootedItems == LOOTED_RESOURCE_ABSENT and lootedGold == LOOTED_RESOURCE_ALL)
+	then
+		return string.format("%s %d corpse%s.", config.lootStart, corpseCount, corpseCount == 1 and "" or "s")
+	end
+	
+	local lootInfo = {}
+	if lootedItems ~= LOOTED_RESOURCE_ABSENT then
+		if itemCount == 1 then
+			lootInfo[#lootInfo + 1] = "1 item"
+		else
+			lootInfo[#lootInfo + 1] = config.lootItem[lootedItems]
+		end
+	end
+	
+	if lootedGold ~= LOOTED_RESOURCE_ABSENT then
+		if lootedGold == LOOTED_RESOURCE_ALL then
+			lootInfo[#lootInfo + 1] = string.format(config.lootGold[lootedGold], goldCount)
+		else
+			lootInfo[#lootInfo + 1] = config.lootGold[lootedGold]
+		end
+	end
+	
+	local corpses = ""
+	if corpseCount > 1 then
+		corpses = string.format(" (%d corpse%s)", corpseCount, corpseCount == 1 and "" or "s")
+	end
+	
+	return string.format("%s %s.%s", config.lootStart, table.concat(lootInfo, " and "), corpses)
+end
+
 function internalLootCorpse(player, corpse, lootedItems, lootedGold)
 	if not corpse:isContainer() then
-		return LOOTED_RESOURCE_ABSENT, LOOTED_RESOURCE_ABSENT
+		return LOOTED_RESOURCE_ABSENT, LOOTED_RESOURCE_ABSENT, 0, 0
 	end
 	
 	local corpseItems = 0
 	local retrievedItems = 0
 	local corpseGold = 0
-	local retrievedGold = 0
+	local retrievedGold = 0 -- stacks
+	local retrievedGoldAmount = 0 -- exact amount
 	
 	for _, corpseItem in pairs(corpse:getItems()) do
 		local isCurrency = corpseItem:isCurrency()
@@ -73,6 +119,7 @@ function internalLootCorpse(player, corpse, lootedItems, lootedGold)
 			
 			if isCurrency then
 				retrievedGold = retrievedGold + 1
+				retrievedGoldAmount = retrievedGoldAmount + corpseItem:getWorth()
 			else
 				retrievedItems = retrievedItems + 1
 			end
@@ -82,7 +129,7 @@ function internalLootCorpse(player, corpse, lootedItems, lootedGold)
 	end
 	
 	-- looted items response
-	return getLootedStatus(retrievedItems, corpseItems, lootedItems), getLootedStatus(retrievedGold, corpseGold, lootedGold)
+	return getLootedStatus(retrievedItems, corpseItems, lootedItems), getLootedStatus(retrievedGold, corpseGold, lootedGold), retrievedItems, retrievedGoldAmount
 end
 
 function parseRequestQuickLoot(player, recvbyte, msg)
@@ -95,20 +142,23 @@ function parseRequestQuickLoot(player, recvbyte, msg)
 
 	local lootedItems = LOOTED_RESOURCE_ABSENT
 	local lootedGold = LOOTED_RESOURCE_ABSENT
+	local itemCount = 0
+	local goldCount = 0
+	local corpseCount = 0
 	
 	if position.x ~= CONTAINER_POSITION then
 		-- shift + right click on the floor
 	
 		-- distance check
 		if position:getDistance(player:getPosition()) > 1 then
-			player:sendTextMessage(MESSAGE_EVENT_ADVANCE, config.messageErrorPosition)
+			player:sendTextMessage(MESSAGE_LOOT, config.messageErrorPosition)
 			return
 		end
 
 		-- tile check
 		local tile = Tile(position)
 		if not tile then
-			player:sendTextMessage(MESSAGE_EVENT_ADVANCE, config.messageErrorPosition)
+			player:sendTextMessage(MESSAGE_LOOT, config.messageErrorPosition)
 			return
 		end
 		
@@ -119,8 +169,6 @@ function parseRequestQuickLoot(player, recvbyte, msg)
 		
 		local hasBodies = false
 		local looted = false
-		local itemCount = 0
-		local goldCount = 0
 
 		local items = tile:getItems()
 		for _, corpse in ipairs(items) do
@@ -147,23 +195,27 @@ function parseRequestQuickLoot(player, recvbyte, msg)
 				if lootable then
 					local tmpLootedItems = LOOTED_RESOURCE_ABSENT
 					local tmpLootedGold = LOOTED_RESOURCE_ABSENT
+					local tmpItemCount = 0
+					local tmpGoldCount = 0
 					
-					tmpLootedItems, tmpLootedGold = internalLootCorpse(player, corpse, tmpLootedItems, tmpLootedGold)
-					
+					tmpLootedItems, tmpLootedGold, tmpItemCount, tmpGoldCount = internalLootCorpse(player, corpse, tmpLootedItems, tmpLootedGold)
+					corpseCount = corpseCount + 1
 					lootedItems = getNextLootedStatus(lootedItems, tmpLootedItems)
 					lootedGold = getNextLootedStatus(lootedGold, tmpLootedGold)
-					
+					itemCount = itemCount + tmpItemCount
+					goldCount = goldCount + tmpGoldCount
 					looted = true
 				end
 			end
 		end
 		
 		if hasBodies and not looted then
-			player:sendTextMessage(MESSAGE_EVENT_ADVANCE, config.messageErrorOwner)
+			player:sendTextMessage(MESSAGE_LOOT, config.messageErrorOwner)
 			return
 		end
 	else
 		-- shift + right click inside corpse window
+		-- this way of looting does not show amount of corpses looted
 		if bit.band(position.y, 0x40) ~= 0 then
 			local corpse = player:getContainerById(position.y - 0x40)
 			if not corpse or corpse and not corpse:isCorpse() then
@@ -178,16 +230,16 @@ function parseRequestQuickLoot(player, recvbyte, msg)
 		
 			local owner = corpse:getCorpseOwner()
 			if owner ~= player:getId() and owner ~= 0 then
-				player:sendTextMessage(MESSAGE_EVENT_ADVANCE, config.messageErrorOwner)
+				player:sendTextMessage(MESSAGE_LOOT, config.messageErrorOwner)
 				return
 			end
 			
-			lootedItems, lootedGold = internalLootCorpse(player, corpse, lootedItems, lootedGold)
+			lootedItems, lootedGold, itemCount, goldCount = internalLootCorpse(player, corpse, lootedItems, lootedGold)
 		end
 	end
 	
 	-- response
-	player:sendTextMessage(MESSAGE_EVENT_ADVANCE, string.format("loot item response: %d, loot gold response: %d", lootedItems, lootedGold))
+	player:sendTextMessage(MESSAGE_LOOT, getLootResponse(lootedItems, lootedGold, itemCount, goldCount, corpseCount))
 end
 setPacketEvent(AUTOLOOT_REQUEST_QUICKLOOT, parseRequestQuickLoot)
 
