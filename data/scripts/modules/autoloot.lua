@@ -1,3 +1,7 @@
+if not AutoLoot then
+	AutoLoot = {}
+end
+
 -- 143 - loot corpse/tile
 AUTOLOOT_REQUEST_QUICKLOOT = 0x8F
 
@@ -10,7 +14,7 @@ LOOTED_RESOURCE_SOME = 2 -- failed to loot some items
 LOOTED_RESOURCE_ALL = 3 -- looted all items
 
 local config = {
-	maxCorpsesLimit = 40, -- how many corpses will be checked
+	maxCorpsesLimit = 20, -- how many corpses will be checked
 	maxLootListLength = 2000, -- how many items can the player register
 	messageErrorPosition = "You cannot loot this position.",
 	messageErrorOwner = "You are not the owner.",
@@ -192,7 +196,7 @@ function parseRequestQuickLoot(player, recvbyte, msg)
 					end
 				end
 				
-				if lootable then
+				if lootable and corpseCount < config.maxCorpsesLimit then
 					local tmpLootedItems = LOOTED_RESOURCE_ABSENT
 					local tmpLootedGold = LOOTED_RESOURCE_ABSENT
 					local tmpItemCount = 0
@@ -243,10 +247,35 @@ function parseRequestQuickLoot(player, recvbyte, msg)
 end
 setPacketEvent(AUTOLOOT_REQUEST_QUICKLOOT, parseRequestQuickLoot)
 
-function parseRequestUpdateAutoloot(player, recvbyte, msg)
-	-- u8 mode
-	-- u16 list size
-		-- list member:
-		-- u16 clientId
+-- auto loot update
+function parseRequestUpdateAutoloot(player, recvbyte, msg)		
+	player:setStorageValue(PlayerStorageKeys.autoLootMode, msg:getByte())	
+	local listSize = math.min(msg:getU16(), config.maxLootListLength)
+	local lootList = {}
+	
+	for listIndex = 1, listSize do
+		lootList[#lootList + 1] = msg:getU16()
+	end
+	AutoLoot[player:getId()] = lootList
 end
 setPacketEvent(AUTOLOOT_REQUEST_SETSETTINGS, parseRequestUpdateAutoloot)
+
+-- login
+do
+	local creatureEvent = CreatureEvent("AutoLootLogin")
+	function creatureEvent.onLogin(player)
+		player:registerEvent("AutoLootLogout")
+		return true
+	end
+	creatureEvent:register()
+end
+
+-- logout
+do
+	local creatureEvent = CreatureEvent("AutoLootLogout")
+	function creatureEvent.onLogout(player)
+		AutoLoot[player:getId()] = nil
+		return true
+	end
+	creatureEvent:register()
+end
