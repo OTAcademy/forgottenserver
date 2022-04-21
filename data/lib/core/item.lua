@@ -2,6 +2,10 @@ function Item:getType()
 	return ItemType(self:getId())
 end
 
+function Item:getClientId()
+	return self:getType():getClientId()
+end
+
 function Item:getClassification()
 	return self:getType():getClassification()
 end

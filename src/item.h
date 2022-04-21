@@ -410,7 +410,7 @@ class ItemAttributes
 
 		std::vector<Attribute> attributes;
 		uint32_t attributeBits = 0;
-		uint64_t lootContainerId = 0;
+		int32_t lootContainerId = 0;
 
 		std::map<CombatType_t, Reflect> reflect;
 		std::map<CombatType_t, uint16_t> boostPercent;
@@ -839,12 +839,19 @@ class Item : virtual public Thing
 
 			return attributes->lootContainerId != 0;
 		}
-		uint64_t getLootContainerId() const {
+		int32_t internalGetLootContainerId() const {
 			if (!attributes) {
 				return 0;
 			}
 
-			uint64_t tmpLootId = attributes->lootContainerId;
+			return attributes->lootContainerId;
+		}
+		int32_t getLootContainerId() {
+			if (!attributes) {
+				attributes.reset(new ItemAttributes());
+			}
+
+			int32_t tmpLootId = attributes->lootContainerId;
 			if (tmpLootId == 0) {
 				tmpLootId = ++Items::lootContainerAutoId;
 				attributes->lootContainerId = tmpLootId;

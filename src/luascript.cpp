@@ -2230,6 +2230,35 @@ void LuaScriptInterface::registerFunctions()
 	registerEnum(RELOAD_TYPE_TALKACTIONS)
 	registerEnum(RELOAD_TYPE_WEAPONS)
 
+	registerEnum(LOOT_TYPE_NONE)
+	registerEnum(LOOT_TYPE_ARMOR)
+	registerEnum(LOOT_TYPE_AMULET)
+	registerEnum(LOOT_TYPE_BOOTS)
+	registerEnum(LOOT_TYPE_CONTAINER)
+	registerEnum(LOOT_TYPE_DECORATION)
+	registerEnum(LOOT_TYPE_FOOD)
+	registerEnum(LOOT_TYPE_HELMET)
+	registerEnum(LOOT_TYPE_LEGS)
+	registerEnum(LOOT_TYPE_OTHERS)
+	registerEnum(LOOT_TYPE_POTIONS)
+	registerEnum(LOOT_TYPE_RINGS)
+	registerEnum(LOOT_TYPE_RUNES)
+	registerEnum(LOOT_TYPE_SHIELDS)
+	registerEnum(LOOT_TYPE_TOOLS)
+	registerEnum(LOOT_TYPE_VALUABLES)
+	registerEnum(LOOT_TYPE_AMMO)
+	registerEnum(LOOT_TYPE_AXE)
+	registerEnum(LOOT_TYPE_CLUB)
+	registerEnum(LOOT_TYPE_DISTANCE)
+	registerEnum(LOOT_TYPE_SWORD)
+	registerEnum(LOOT_TYPE_WAND)
+	registerEnum(LOOT_TYPE_CREATURE_PRODUCT)
+	registerEnum(LOOT_TYPE_QUIVER)
+	registerEnum(LOOT_TYPE_STASH)
+	registerEnum(LOOT_TYPE_GOLD)
+	registerEnum(LOOT_TYPE_UNASSIGNED)
+	registerEnum(LOOT_TYPE_LAST)
+
 	registerEnum(ACCOUNTRESOURCE_STORE_COINS)
 	registerEnum(ACCOUNTRESOURCE_STORE_COINS_NONTRANSFERABLE)
 	registerEnum(ACCOUNTRESOURCE_STORE_COINS_RESERVED)
@@ -2917,6 +2946,10 @@ void LuaScriptInterface::registerFunctions()
 	registerMethod("Player", "learnSpell", LuaScriptInterface::luaPlayerLearnSpell);
 	registerMethod("Player", "forgetSpell", LuaScriptInterface::luaPlayerForgetSpell);
 	registerMethod("Player", "hasLearnedSpell", LuaScriptInterface::luaPlayerHasLearnedSpell);
+
+	registerMethod("Player", "setLootContainer", LuaScriptInterface::luaPlayerSetLootContainer);
+	registerMethod("Player", "getLootContainer", LuaScriptInterface::luaPlayerGetLootContainer);
+	registerMethod("Player", "getLootContainerFlags", LuaScriptInterface::luaPlayerGetLootContainerFlags);
 
 	registerMethod("Player", "sendTutorial", LuaScriptInterface::luaPlayerSendTutorial);
 	registerMethod("Player", "addMapMark", LuaScriptInterface::luaPlayerAddMapMark);
@@ -11272,6 +11305,65 @@ int LuaScriptInterface::luaPlayerHasLearnedSpell(lua_State* L)
 	} else {
 		lua_pushnil(L);
 	}
+	return 1;
+}
+
+int LuaScriptInterface::luaPlayerSetLootContainer(lua_State* L)
+{
+	// player:setLootContainer(category, lootContainerId)
+	Player* player = getUserdata<Player>(L, 1);
+	if (!player) {
+		lua_pushnil(L);
+		return 1;
+	}
+
+	LootTypes_t lootCategory = getNumber<LootTypes_t>(L, 2);
+	int32_t lootContainerId = getNumber<int32_t>(L, 3);
+	if (lootCategory > LOOT_TYPE_NONE && lootCategory <= LOOT_TYPE_LAST) {
+		player->setLootContainer(lootCategory, lootContainerId);
+		pushBoolean(L, true);
+	} else {
+		pushBoolean(L, false);
+	}
+	
+	return 1;
+}
+
+int LuaScriptInterface::luaPlayerGetLootContainer(lua_State* L)
+{
+	// player:getLootContainer(category)
+	Player* player = getUserdata<Player>(L, 1);
+	if (!player) {
+		lua_pushnil(L);
+		return 1;
+	}
+
+	LootTypes_t lootCategory = getNumber<LootTypes_t>(L, 2);
+	if (lootCategory > LOOT_TYPE_NONE && lootCategory <= LOOT_TYPE_LAST) {
+		lua_pushnumber(L, player->getLootContainer(lootCategory));
+	} else {
+		lua_pushnil(L);
+	}
+
+	return 1;
+}
+
+int LuaScriptInterface::luaPlayerGetLootContainerFlags(lua_State* L)
+{
+	// player:getLootContainerFlags(lootContainerId)
+	Player* player = getUserdata<Player>(L, 1);
+	if (!player) {
+		lua_pushnil(L);
+		return 1;
+	}
+
+	int32_t lootContainerId = getNumber<int32_t>(L, 2);
+	if (lootContainerId == 0) {
+		lua_pushnil(L);
+		return 1;
+	}
+
+	lua_pushnumber(L, player->getLootContainerFlags(lootContainerId));
 	return 1;
 }
 

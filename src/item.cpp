@@ -627,8 +627,8 @@ Attr_ReadValue Item::readAttr(AttrTypes_t attr, PropStream& propStream)
 
 		// meta attribute to remember containers marked for loot system
 		case ATTR_LOOTCONTAINER: {
-			uint64_t lootContainer;
-			if (!propStream.read<uint64_t>(lootContainer)) {
+			int32_t lootContainer;
+			if (!propStream.read<int32_t>(lootContainer)) {
 				return ATTR_READ_ERROR;
 			}
 
@@ -828,7 +828,7 @@ void Item::serializeAttr(PropWriteStream& propWriteStream) const
 
 	if (isLootContainer()) {
 		propWriteStream.write<uint8_t>(ATTR_LOOTCONTAINER);
-		propWriteStream.write<uint64_t>(getLootContainerId());
+		propWriteStream.write<int32_t>(internalGetLootContainerId());
 	}
 
 	if (hasAttribute(ITEM_ATTRIBUTE_DURATION)) {

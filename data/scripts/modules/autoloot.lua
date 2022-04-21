@@ -1,13 +1,11 @@
-if not AutoLoot then
-	AutoLoot = {}
-end
+-- protocol
+AUTOLOOT_REQUEST_QUICKLOOT = 0x8F -- 143 - loot corpse/tile
+AUTOLOOT_REQUEST_SELECT_CONTAINER = 0x90 -- 144 - select loot container
+AUTOLOOT_REQUEST_SETSETTINGS = 0x91 -- 145 - add/remove loot item
 
--- 143 - loot corpse/tile
-AUTOLOOT_REQUEST_QUICKLOOT = 0x8F
+AUTOLOOT_RESPONSE_LOOT_CONTAINERS = 0xC0 -- 192 - loot container info
 
--- 145 - add/remove loot item
-AUTOLOOT_REQUEST_SETSETTINGS = 0x91
-
+-- loot message helpers
 LOOTED_RESOURCE_ABSENT = 0 -- corpse has no items
 LOOTED_RESOURCE_NONE = 1 -- failed to loot items
 LOOTED_RESOURCE_SOME = 2 -- failed to loot some items
@@ -33,6 +31,12 @@ local config = {
 		[LOOTED_RESOURCE_ALL] = "complete %d gold",
 	},
 }
+
+-- global autoloot cache
+if not AutoLoot then
+	AutoLoot = {}
+	LootContainersCache = {}
+end
 
 local function getLootedStatus(currentAmount, totalAmount, currentStatus)
 	if currentAmount == 0 and totalAmount == 0 then
@@ -137,7 +141,7 @@ function internalLootCorpse(player, corpse, lootedItems, lootedGold)
 end
 
 function parseRequestQuickLoot(player, recvbyte, msg)
-	local position = Position(msg:getU16(), msg:getU16(), msg:getByte())	
+	local position = Position(msg:getU16(), msg:getU16(), msg:getByte())
 	
 	local stackpos = msg:getByte()
 	local spriteId = msg:getU16()
@@ -218,6 +222,9 @@ function parseRequestQuickLoot(player, recvbyte, msg)
 			return
 		end
 	else
+		-- to do: browse field mode
+	
+	
 		-- shift + right click inside corpse window
 		-- this way of looting does not show amount of corpses looted
 		if bit.band(position.y, 0x40) ~= 0 then
@@ -260,11 +267,128 @@ function parseRequestUpdateAutoloot(player, recvbyte, msg)
 end
 setPacketEvent(AUTOLOOT_REQUEST_SETSETTINGS, parseRequestUpdateAutoloot)
 
+function Player:selectLootContainer(item, category)
+	if category <= LOOT_TYPE_NONE or category > LOOT_TYPE_LAST then
+		return
+	end
+	
+	if not item:isContainer() then
+		return
+	end
+	
+	self:setLootContainer(category, item:getLootContainerId())
+	LootContainersCache[self:getId()][category] = {id = lootContainerId, spriteId = item:getClientId()}
+	self:sendLootContainers()
+end
+
+-- select loot container from list
+function parseSelectLootContainer(player, recvbyte, msg)
+	-- mode byte
+	-- 0x00 - select loot container
+		-- u8 loot type
+		-- u16 u16 u8 pos
+		-- u16 spriteId
+		-- u8 containerSlot
+	-- 0x01 - remove loot container
+		-- u8 loot type
+	-- 0x03 - use main container as fallback checkbox (requires updating the ui after clicking)
+		-- u8 isChecked
+
+	local mode = msg:getByte()
+	if mode == 0x00 then
+		local lootType = msg:getByte()
+		local position = Position(msg:getU16(), msg:getU16(), msg:getByte())
+		local spriteId = msg:getU16()
+		local containerPos = msg:getByte() + 1 -- client first index is 0, container:getItems() first index is 1
+				
+		local isPlayerInventory = position.x == CONTAINER_POSITION
+		if not isPlayerInventory then
+			return
+		end
+		
+		if bit.band(position.y, 0x40) ~= 0 then
+			local parent = player:getContainerById(position.y - 0x40)
+			if not (parent and parent:isContainer()) then
+				return
+			end
+			
+			local containerItem = parent:getItems()[containerPos]
+			if not containerItem then
+				return
+			end
+			
+			player:selectLootContainer(containerItem, lootType)			
+		elseif position.y >= CONST_SLOT_FIRST and position.y <= CONST_SLOT_LAST then
+			-- slot position
+			local chosenItem = player:getSlotItem(position.y)
+			if chosenItem then
+				player:selectLootContainer(chosenItem, lootType)
+			end
+		end
+	elseif mode == 0x01 then
+		-- clear loot container
+		local lootType = msg:getByte()
+		player:setLootContainer(lootType, 0)
+		LootContainersCache[player:getId()][lootType] = nil
+		player:sendLootContainers()
+	end
+end
+setPacketEvent(AUTOLOOT_REQUEST_SELECT_CONTAINER, parseSelectLootContainer)
+
+local function addPlayerLootContainer(player, container)
+	local cid = player:getId()
+	local lootContainerId = container:getLootContainerId()
+	local flags = player:getLootContainerFlags(lootContainerId)
+	if flags ~= 0 then
+		for lootType = LOOT_TYPE_NONE + 1, LOOT_TYPE_LAST do
+			if bit.band(flags, 2^lootType) ~= 0 then
+				LootContainersCache[cid][lootType] = {id = lootContainerId, spriteId = container:getClientId()}
+			end
+		end
+	end
+end
+
+-- add player to autoloot lists
+function Player:registerAutoLoot()
+	local cid = self:getId()
+	if LootContainersCache[cid] then
+		return
+	end
+	
+	LootContainersCache[cid] = {}
+	
+	for slot = CONST_SLOT_FIRST, CONST_SLOT_STORE_INBOX do
+		local slotItem = self:getSlotItem(slot)
+		if slotItem then
+			if slotItem:isContainer() then
+				if slotItem:isLootContainer() then
+					addPlayerLootContainer(self, slotItem)
+				end
+			
+				for _, containerItem in pairs(slotItem:getItems(true)) do
+					if containerItem:isContainer() and containerItem:isLootContainer() then
+						addPlayerLootContainer(self, containerItem)
+					end
+				end
+			end
+		end
+	end
+end
+
+-- remove player from autoloot lists
+function Player:unregisterAutoLoot()
+	local cid = self:getId()
+	AutoLoot[cid] = nil
+end
+
 -- login
 do
 	local creatureEvent = CreatureEvent("AutoLootLogin")
 	function creatureEvent.onLogin(player)
 		player:registerEvent("AutoLootLogout")
+		player:registerEvent("AutoLootDeath")
+		player:registerAutoLoot()
+		player:sendLootContainers()
 		return true
 	end
 	creatureEvent:register()
@@ -274,8 +398,39 @@ end
 do
 	local creatureEvent = CreatureEvent("AutoLootLogout")
 	function creatureEvent.onLogout(player)
-		AutoLoot[player:getId()] = nil
+		player:unregisterAutoLoot()
 		return true
 	end
 	creatureEvent:register()
+end
+
+-- death
+do
+	local creatureEvent = CreatureEvent("AutoLootDeath")
+	function creatureEvent.onDeath(player)
+		player:unregisterAutoLoot()
+		return true
+	end
+	creatureEvent:register()
+end
+
+-- send loot containers
+function Player:sendLootContainers()
+	local msg = NetworkMessage()
+	msg:addByte(AUTOLOOT_RESPONSE_LOOT_CONTAINERS)
+	msg:addByte(0x00) -- fallback to main container checkbox (to do)
+
+	local lootContainers = {}
+	
+	for categoryId, containerData in pairs(LootContainersCache[self:getId()]) do
+		lootContainers[#lootContainers + 1] = {categoryId, containerData.spriteId}
+	end
+	
+	msg:addByte(#lootContainers) -- list of containers
+	for _, containerData in pairs(lootContainers) do
+		msg:addByte(containerData[1])
+		msg:addU16(containerData[2])
+	end
+	
+	msg:sendToPlayer(self)
 end

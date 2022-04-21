@@ -58,11 +58,7 @@ PlayerStorageKeys = {
 	bestiaryInitCharmSystem = 329999,
 	bestiaryKillCountBase = 330000,
 	bestiaryRaceProgressBase = 340000,
-	bestiaryCategoryProgressBase = 350000,
-	
-	-- auto looting
-	-- total range: 360000-360100
-	autoLootBase = 360000,
+	bestiaryCategoryProgressBase = 350000
 }
 
 GlobalStorageKeys = {
