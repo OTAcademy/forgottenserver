@@ -2605,6 +2605,7 @@ void LuaScriptInterface::registerFunctions()
 	registerMethod("Item", "clone", LuaScriptInterface::luaItemClone);
 	registerMethod("Item", "split", LuaScriptInterface::luaItemSplit);
 	registerMethod("Item", "remove", LuaScriptInterface::luaItemRemove);
+	registerMethod("Item", "refresh", LuaScriptInterface::luaItemRefresh);
 
 	registerMethod("Item", "getUniqueId", LuaScriptInterface::luaItemGetUniqueId);
 	registerMethod("Item", "getActionId", LuaScriptInterface::luaItemGetActionId);
@@ -2970,7 +2971,8 @@ void LuaScriptInterface::registerFunctions()
 	registerMethod("Player", "getContainerId", LuaScriptInterface::luaPlayerGetContainerId);
 	registerMethod("Player", "getContainerById", LuaScriptInterface::luaPlayerGetContainerById);
 	registerMethod("Player", "getContainerIndex", LuaScriptInterface::luaPlayerGetContainerIndex);
-
+	registerMethod("Player", "getOpenContainers", LuaScriptInterface::luaPlayerGetOpenContainers);
+	
 	registerMethod("Player", "getInstantSpells", LuaScriptInterface::luaPlayerGetInstantSpells);
 	registerMethod("Player", "canCast", LuaScriptInterface::luaPlayerCanCast);
 
@@ -7015,6 +7017,20 @@ int LuaScriptInterface::luaItemRemove(lua_State* L)
 	if (item) {
 		int32_t count = getNumber<int32_t>(L, 2, -1);
 		pushBoolean(L, g_game.internalRemoveItem(item, count) == RETURNVALUE_NOERROR);
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
+int LuaScriptInterface::luaItemRefresh(lua_State* L)
+{
+	// updates the item icons in player inventory
+	// item:refresh()
+	Item* item = getUserdata<Item>(L, 1);
+	if (item) {
+		item->update();
+		pushBoolean(L, true);
 	} else {
 		lua_pushnil(L);
 	}
@@ -11620,6 +11636,27 @@ int LuaScriptInterface::luaPlayerGetContainerIndex(lua_State* L)
 	}
 	return 1;
 }
+
+int LuaScriptInterface::luaPlayerGetOpenContainers(lua_State* L)
+{
+	// player:getOpenContainers()
+	// returns windowId and userdata of opened containers
+	Player* player = getUserdata<Player>(L, 1);
+	if (player) {
+		const auto& openContainers = player->getOpenContainers();
+
+		lua_createtable(L, openContainers.size(), 0);
+		for (auto const& containerInfo : openContainers) {
+			pushUserdata<Container>(L, containerInfo.second.container);
+			setMetatable(L, -1, "Container");
+			lua_rawseti(L, -2, containerInfo.first);
+		}
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
 
 int LuaScriptInterface::luaPlayerGetInstantSpells(lua_State* L)
 {

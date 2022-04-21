@@ -716,6 +716,7 @@ class LuaScriptInterface
 		static int luaItemClone(lua_State* L);
 		static int luaItemSplit(lua_State* L);
 		static int luaItemRemove(lua_State* L);
+		static int luaItemRefresh(lua_State* L);
 
 		static int luaItemGetUniqueId(lua_State* L);
 		static int luaItemGetActionId(lua_State* L);
@@ -1076,6 +1077,7 @@ class LuaScriptInterface
 		static int luaPlayerGetContainerId(lua_State* L);
 		static int luaPlayerGetContainerById(lua_State* L);
 		static int luaPlayerGetContainerIndex(lua_State* L);
+		static int luaPlayerGetOpenContainers(lua_State* L);
 
 		static int luaPlayerGetInstantSpells(lua_State* L);
 		static int luaPlayerCanCast(lua_State* L);

@@ -624,7 +624,7 @@ class Player final : public Creature, public Cylinder
 		}
 
 		bool getAddAttackSkill() const {
-return addAttackSkillPoint;
+			return addAttackSkillPoint;
 		}
 		BlockType_t getLastAttackBlockType() const {
 			return lastAttackBlockType;

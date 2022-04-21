@@ -276,9 +276,58 @@ function Player:selectLootContainer(item, category)
 		return
 	end
 	
-	self:setLootContainer(category, item:getLootContainerId())
+	local lootContainerId = item:getLootContainerId()
+	self:setLootContainer(category, lootContainerId)
+	
+	local previousContainer = LootContainersCache[self:getId()][category]
+	if previousContainer then
+		self:updateLootContainerById(previousContainer.id)
+	end
+	
 	LootContainersCache[self:getId()][category] = {id = lootContainerId, spriteId = item:getClientId()}
 	self:sendLootContainers()
+	item:refresh()
+end
+
+function Player:updateLootContainerById(lootContainerId)
+	-- search inventory
+	for slot = CONST_SLOT_FIRST, CONST_SLOT_STORE_INBOX do
+		local slotItem = self:getSlotItem(slot)
+		if slotItem then
+			if slotItem:isContainer() and slotItem:isLootContainer() and slotItem:getLootContainerId() == lootContainerId then
+				slotItem:refresh()
+				return
+			end
+		end
+	end
+
+	-- search opened containers
+	for _, container in pairs(self:getOpenContainers()) do
+		for a, containerItem in pairs(container:getItems(false)) do
+			if containerItem:isContainer() and containerItem:isLootContainer() and containerItem:getLootContainerId() == lootContainerId then
+				containerItem:refresh()
+				return
+			end
+		end
+	end
+end
+
+function Player:deSelectLootContainer(category)
+	if category <= LOOT_TYPE_NONE or category > LOOT_TYPE_LAST then
+		return
+	end
+	
+	-- store deselected container info to search it later
+	local cid = self:getId()
+	local lootContainerId = LootContainersCache[cid][category].id
+	
+	-- unregister deselected container
+	self:setLootContainer(category, 0)
+	LootContainersCache[cid][category] = nil
+	self:sendLootContainers()
+
+	-- find deselected container and update icon
+	self:updateLootContainerById(lootContainerId)
 end
 
 -- select loot container from list
@@ -328,9 +377,7 @@ function parseSelectLootContainer(player, recvbyte, msg)
 	elseif mode == 0x01 then
 		-- clear loot container
 		local lootType = msg:getByte()
-		player:setLootContainer(lootType, 0)
-		LootContainersCache[player:getId()][lootType] = nil
-		player:sendLootContainers()
+		player:deSelectLootContainer(lootType)
 	end
 end
 setPacketEvent(AUTOLOOT_REQUEST_SELECT_CONTAINER, parseSelectLootContainer)
