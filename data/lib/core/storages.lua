@@ -38,7 +38,10 @@ PlayerStorageKeys = {
 	mutatedPumpkin = 70035,
 	randomizeMount = 70036,
 	commandsCooldown = 70037,
+	
+	-- auto loot
 	autoLootMode = 70038,
+	autoLootFallback = 70040,
 	
 	-- condition taint storages
 	taints = 70041,

@@ -789,27 +789,27 @@ enum LootTypes_t : uint8_t {
 	LOOT_TYPE_FOOD = 6,
 	LOOT_TYPE_HELMET = 7,
 	LOOT_TYPE_LEGS = 8,
-	LOOT_TYPE_OTHERS = 9,
-	LOOT_TYPE_POTIONS = 10,
-	LOOT_TYPE_RINGS = 11,
-	LOOT_TYPE_RUNES = 12,
-	LOOT_TYPE_SHIELDS = 13,
-	LOOT_TYPE_TOOLS = 14,
-	LOOT_TYPE_VALUABLES = 15,
+	LOOT_TYPE_OTHER = 9,
+	LOOT_TYPE_POTION = 10,
+	LOOT_TYPE_RING = 11,
+	LOOT_TYPE_RUNE = 12,
+	LOOT_TYPE_SHIELD = 13,
+	LOOT_TYPE_TOOL = 14,
+	LOOT_TYPE_VALUABLE = 15,
 	LOOT_TYPE_AMMO = 16,
 	LOOT_TYPE_AXE = 17,
 	LOOT_TYPE_CLUB = 18,
 	LOOT_TYPE_DISTANCE = 19,
 	LOOT_TYPE_SWORD = 20,
 	LOOT_TYPE_WAND = 21,
-	// 22 empty
-	// 23 empty
+	// 22 premium scrolls (not selectable)
+	// 23 store coins (not selectable)
 	LOOT_TYPE_CREATURE_PRODUCT = 24,
 	LOOT_TYPE_QUIVER = 25,
-	// 26 empty
+	// 26 "(unknown)" (not selectable)
 	LOOT_TYPE_STASH = 27,
-	// 28 empty
-	// 29 empty
+	// 28 unsorted (not selectable)
+	// 29 weapons: all (not selectable)
 	LOOT_TYPE_GOLD = 30,
 	LOOT_TYPE_UNASSIGNED = 31,
 
