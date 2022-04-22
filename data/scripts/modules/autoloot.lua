@@ -1,24 +1,19 @@
 -- helpers for autoloot sorting
 AutoLootMeta = {
+	-- 20 entries per line for easier reading
 	[LOOT_TYPE_TOOL] = {
-		2036, 2044, 2047, 2050, 2062, 2063, 2120, 2217, 2324, 2356,
-		2361, 2548, 2549, 2552, 2553, 2554, 2556, 2557, 2558, 2559,
-		2560, 2561, 2563, 2564, 2565, 2566, 2567, 2568, 2569, 2570,
-		2571, 2572, 2573, 2578, 2580, 2600, 4846, 5468, 5710, 5865,
-		5908, 5941, 5942, 5946, 6561, 7731, 7734, 8613, 8717, 10152,
-		10153, 10223, 10511, 10513, 10515, 23588, 24126, 24127, 24135, 24183,
+		2036, 2044, 2047, 2050, 2062, 2063, 2120, 2217, 2324, 2356, 2361, 2548, 2549, 2552, 2553, 2554, 2556, 2557, 2558, 2559,
+		2560, 2561, 2563, 2564, 2565, 2566, 2567, 2568, 2569, 2570, 2571, 2572, 2573, 2578, 2580, 2600, 4846, 5468, 5710, 5865,
+		5908, 5941, 5942, 5946, 6561, 7731, 7734, 8613, 8717, 10152, 10153, 10223, 10511, 10513, 10515, 23588, 24126, 24127, 24135, 24183,
 		24185, 32606, 33983, 33984, 33990, 34569, 39199, 39200, 39201,
 	},
 	[LOOT_TYPE_POTION] = {
-		7634, 7635, 7636, 38219, 39379, 39380, 39381, 39382, 39383, 39384,
-		39385, 39386, 39387, 39388, 39389, 39390, 39391, 39392, 39393, 39394,
+		7634, 7635, 7636, 38219, 39379, 39380, 39381, 39382, 39383, 39384, 39385, 39386, 39387, 39388, 39389, 39390, 39391, 39392, 39393, 39394,
 		39395, 39396, 39397, 39398,
 	},
 	[LOOT_TYPE_FOOD] = {
-		2328, 2692, 2693, 2694, 5467, 6277, 6280, 8846, 9992, 9993,
-		9994, 9995, 9997, 9998, 9999, 10000, 10001, 11245, 12540, 12542,
-		12543, 12544, 12641, 14341, 14345, 22644, 31140, 31141, 31142, 32651,
-		33988, 34341, 34342, 34570, 34617, 34699, 34700, 34701, 34722, 34723,
+		2328, 2692, 2693, 2694, 5467, 6277, 6280, 8846, 9992, 9993, 9994, 9995, 9997, 9998, 9999, 10000, 10001, 11245, 12540, 12542,
+		12543, 12544, 12641, 14341, 14345, 22644, 31140, 31141, 31142, 32651, 33988, 34341, 34342, 34570, 34617, 34699, 34700, 34701, 34722, 34723,
 		34724, 34726, 34729, 34854, 36586, 40680, 40681, 40682, 40683,
 	},
 	[LOOT_TYPE_DECORATION] = {
@@ -161,6 +156,11 @@ local config = {
 		[LOOTED_RESOURCE_SOME] = "only some of the dropped gold",
 		[LOOTED_RESOURCE_ALL] = "complete %d gold",
 	},
+	
+	categoryFull = "Attention! One of assigned loot containers is full!",
+	unassignedFull = "Attention! Container for unassigned loot is full!",
+	mainFull = "Attention! All your containers are full!",
+	noCapacity = "Attention! You cannot take any more items!",
 }
 
 -- global autoloot cache
@@ -210,7 +210,6 @@ function Player:getLootContainers()
 	for slot = CONST_SLOT_FIRST, CONST_SLOT_STORE_INBOX do
 		local slotItem = self:getSlotItem(slot)
 		if slotItem then
-		
 			if slotItem:isContainer() then
 				if slotItem:isLootContainer() then
 					local flags = self:getLootContainerFlags(slotItem:getLootContainerId())
@@ -238,8 +237,6 @@ function Player:getLootContainers()
 					end
 				end
 			end
-			
-			
 		end
 	end
 		
@@ -342,6 +339,14 @@ function internalLootItem(player, item, lootContainers, usesFallback, mainContai
 	local itemType = item:getType()
 	local lootedItem = item:clone()
 	local found = false
+	local isSkipMode = player:getStorageValue(PlayerStorageKeys.autoLootMode) ~= 1
+	local isItemListed = table.contains(AutoLoot[player:getId()], item:getClientId())
+	
+	if isSkipMode and isItemListed then
+		return
+	elseif not isSkipMode and not isItemListed then
+		return
+	end
 	
 	-- query type-specific backpacks
 	for category, container in pairs(lootContainers) do
@@ -351,6 +356,8 @@ function internalLootItem(player, item, lootContainers, usesFallback, mainContai
 			local ret = container:addItemEx(lootedItem)
 			if ret == RETURNVALUE_NOERROR then
 				return ret
+			elseif ret == RETURNVALUE_CONTAINERNOTENOUGHROOM then
+				player:sendTextMessage(MESSAGE_STATUS_WARNING, config.categoryFull)
 			end
 			
 			break
@@ -359,19 +366,24 @@ function internalLootItem(player, item, lootContainers, usesFallback, mainContai
 
 	-- query unassigned loot backpack
 	if lootContainers[unassigned] then
+		found = true
+	
 		local ret = lootContainers[unassigned]:addItemEx(lootedItem)
 		if ret == RETURNVALUE_NOERROR then
 			return ret
+		elseif ret == RETURNVALUE_CONTAINERNOTENOUGHROOM then
+			player:sendTextMessage(MESSAGE_STATUS_WARNING, config.unassignedFull)
 		end
 	end
 
 	-- dedicated container is full
 	-- check if we can use main backpack
-	-- check will be skipped for unassigned loot
+	-- check will be skipped if there is no container for item category or unassigned loot
 	if found then
 		if not usesFallback then
 			lootedItem:remove()
-			return RETURNVALUE_NOTENOUGHROOM
+			player:sendTextMessage(MESSAGE_STATUS_WARNING, config.unassignedFull)
+			return RETURNVALUE_CONTAINERNOTENOUGHROOM
 		end
 	end
 	
@@ -382,12 +394,19 @@ function internalLootItem(player, item, lootContainers, usesFallback, mainContai
 			lootedItem:remove()
 		end
 		
+		if ret == RETURNVALUE_CONTAINERNOTENOUGHROOM then
+			player:sendTextMessage(MESSAGE_STATUS_WARNING, config.mainFull)
+		elseif ret == RETURNVALUE_NOTENOUGHCAPACITY then
+			player:sendTextMessage(MESSAGE_STATUS_WARNING, config.noCapacity)
+		end
+		
 		return ret
 	end
 	
 	-- no free slots found
 	lootedItem:remove()
-	return RETURNVALUE_NOTENOUGHROOM
+	player:sendTextMessage(MESSAGE_STATUS_WARNING, config.noCapacity)
+	return RETURNVALUE_CONTAINERNOTENOUGHROOM
 end
 
 function internalLootCorpse(player, corpse, lootedItems, lootedGold, lootContainers)
@@ -511,7 +530,7 @@ function parseRequestQuickLoot(player, recvbyte, msg)
 			return
 		end
 	else
-		-- shift + right click inside corpse window
+		-- shift + right click in container ui
 		-- this way of looting does not show amount of corpses looted
 		if bit.band(position.y, 0x40) ~= 0 then
 			local openedContainer = player:getContainerById(position.y - 0x40)
@@ -527,7 +546,7 @@ function parseRequestQuickLoot(player, recvbyte, msg)
 			end
 			
 			if not player:canOpenCorpse(openedContainer) then
-				-- container is open but player has lost rights to it
+				-- container is open but the player has lost rights to it
 				-- (eg by leaving party)
 				player:sendTextMessage(MESSAGE_LOOT, config.messageErrorOwner)
 				return
