@@ -264,6 +264,8 @@ void ProtocolGame::fastRelog(const std::string& otherPlayerName)
 	Player* foundPlayer = g_game.getPlayerByName(otherPlayerName);
 	bool isLogin = !foundPlayer || g_config.getBoolean(ConfigManager::ALLOW_CLONES);
 
+	OperatingSystem_t operatingSystem = player->getOperatingSystem();
+
 	if (isLogin) {
 		Player* otherPlayer = new Player(nullptr);
 		otherPlayer->setName(otherPlayerName);
@@ -317,10 +319,10 @@ void ProtocolGame::fastRelog(const std::string& otherPlayerName)
 			return;
 		}
 
-		OperatingSystem_t operatingSystem = player->getOperatingSystem();
+		
 		otherPlayer->setOperatingSystem(operatingSystem);
 
-		//sendRemoveTileCreature(player, player->getPosition(), player->getTile()->getClientIndexOfCreature(player, player));
+		sendRemoveTileCreature(player, player->getPosition(), player->getTile()->getClientIndexOfCreature(player, player));
 
 		// move the connection to new player
 		player->client = nullptr;
@@ -350,11 +352,11 @@ void ProtocolGame::fastRelog(const std::string& otherPlayerName)
 		// remove old player
 		g_game.removeCreature(player);
 
-		// restore client eyes
-		otherPlayer->client = getThis();
-
 		// assign new player
 		player = otherPlayer;
+
+		// restore client eyes
+		player->client = getThis();
 
 		// send player stats
 		sendStats(); // hp, cap, level, xp rate, etc.
@@ -367,9 +369,9 @@ void ProtocolGame::fastRelog(const std::string& otherPlayerName)
 		sendItems(); // send carried items for action bars
 
 		// enter world and send game screen
-		sendPendingStateEntered();
-		sendEnterWorld();
-		sendMapDescription(player->getPosition());
+		//sendPendingStateEntered();
+		//sendEnterWorld();
+		//sendMapDescription(player->getPosition());
 
 		// send login effect
 		if (!player->isInGhostMode()) {
@@ -395,10 +397,10 @@ void ProtocolGame::fastRelog(const std::string& otherPlayerName)
 		sendVIPEntries();
 
 		//sendUpdateTileCreature(player->getPosition(), player->getTile()->getClientIndexOfCreature(player, player), player);
-		//sendMapDescription(player->getPosition());
+		sendMapDescription(player->getPosition());
 
 		lastName = otherPlayerName;
-		addGameTask([=, playerID = otherPlayer->getID()]() { g_game.playerConnect(playerID, isLogin); });
+		addGameTask([=, playerID = player->getID()]() { g_game.playerConnect(playerID, isLogin); });
 	} else {
 		if (eventConnect != 0 || !g_config.getBoolean(ConfigManager::REPLACE_KICK_ON_LOGIN)) {
 			//Already trying to connect
@@ -411,10 +413,10 @@ void ProtocolGame::fastRelog(const std::string& otherPlayerName)
 			//foundPlayer->isConnecting = true;
 
 			eventConnect = g_scheduler.addEvent(createSchedulerTask(1000, [=, thisPtr = getThis(), playerID = foundPlayer->getID()]() {
-				thisPtr->connect(playerID, player->getOperatingSystem());
+				thisPtr->connect(playerID, operatingSystem);
 			}));
 		} else {
-			connect(foundPlayer->getID(), player->getOperatingSystem());
+			connect(foundPlayer->getID(), operatingSystem);
 		}
 
 		lastName = otherPlayerName;
