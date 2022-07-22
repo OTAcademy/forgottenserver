@@ -61,6 +61,7 @@ class ProtocolGame final : public Protocol
 
 		void login(const std::string& name, uint32_t accountId, OperatingSystem_t operatingSystem);
 		void logout(bool displayEffect, bool forced, const std::string& message = std::string());
+		void fastRelog(const std::string& otherPlayerName);
 
 		uint16_t getVersion() const {
 			return version;

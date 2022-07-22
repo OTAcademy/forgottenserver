@@ -2485,6 +2485,11 @@ void Player::kickPlayer(bool displayEffect, const std::string& message)
 	}
 }
 
+void Player::fastRelog(const std::string& otherCharName)
+{
+	g_dispatcher.addTask(createTask([=]() { client->fastRelog(otherCharName); }));
+}
+
 int32_t Player::getAccountResource(AccountResourceTypes_t resourceType)
 {
 	int32_t accId = accountNumber != 0 ? accountNumber : IOLoginData::getAccountIdByPlayerId(guid);
