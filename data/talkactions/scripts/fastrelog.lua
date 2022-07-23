@@ -1,6 +1,19 @@
+local relogCache = {}
+
 function onSay(player, words, param)
-	local relog = player:fastRelog(param)
+	local accId = player:getAccountId()
+	if not relogCache[accId] then
+		relogCache[accId] = 0
+	end
+
+	-- prevent spam
+	if os.mtime() < relogCache[accId] then
+		return false
+	end
+	relogCache[accId] = os.mtime() + 400
 	
+	-- try to relog
+	local relog = player:fastRelog(param)
 	if relog == RETURNVALUE_YOUCANNOTLOGOUTHERE then
 		player:sendColorMessage("You may not logout here!", MESSAGE_COLOR_PURPLE)
 	elseif relog == RETURNVALUE_NOTPOSSIBLE then
