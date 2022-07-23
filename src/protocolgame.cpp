@@ -318,13 +318,11 @@ void ProtocolGame::fastRelog(const std::string& otherPlayerName)
 			player->sendCancelMessage("Your character could not be loaded.");
 			return;
 		}
-
 		
 		otherPlayer->setOperatingSystem(operatingSystem);
 
-		sendRemoveTileCreature(player, player->getPosition(), player->getTile()->getClientIndexOfCreature(player, player));
-
 		// move the connection to new player
+		knownCreatureSet.erase(player->getID());
 		player->client = nullptr;
 
 		if (!g_game.placeCreature(otherPlayer, otherPlayer->getLoginPosition())) {
@@ -352,11 +350,11 @@ void ProtocolGame::fastRelog(const std::string& otherPlayerName)
 		// remove old player
 		g_game.removeCreature(player);
 
-		// assign new player
-		player = otherPlayer;
-
 		// restore client eyes
-		player->client = getThis();
+		otherPlayer->client = getThis();
+
+		// assign new player
+		this->player = otherPlayer;
 
 		// send player stats
 		sendStats(); // hp, cap, level, xp rate, etc.
@@ -369,9 +367,7 @@ void ProtocolGame::fastRelog(const std::string& otherPlayerName)
 		sendItems(); // send carried items for action bars
 
 		// enter world and send game screen
-		//sendPendingStateEntered();
-		//sendEnterWorld();
-		//sendMapDescription(player->getPosition());
+		sendMapDescription(player->getPosition());
 
 		// send login effect
 		if (!player->isInGhostMode()) {
